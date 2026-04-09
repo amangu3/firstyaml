@@ -1,0 +1,24 @@
+name: evpn
+mgmt:
+  network: mgmt
+  ipv4-subnet: 172.20.20.0/24
+topology:
+  nodes:
+    leaf01:
+      kind: cvx
+      image: networkop/cx:4.4.0
+      mgmt-ipv4: 172.20.20.196
+      binds:
+      - config/leaf01/interfaces:/etc/network/interfaces
+      - config/leaf01/daemons:/etc/frr/daemons
+      - config/leaf01/frr.conf:/etc/frr/frr.conf
+    leaf02:
+      kind: cvx
+      image: networkop/cx:4.4.0
+      mgmt-ipv4: 172.20.20.229
+      binds:
+      - config/leaf02/interfaces:/etc/network/interfaces
+      - config/leaf02/daemons:/etc/frr/daemons
+      - config/leaf02/frr.conf:/etc/frr/frr.conf
+  links:
+    - endpoints: ["leaf01:swp1", "leaf02:swp1"]
