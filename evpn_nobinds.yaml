@@ -7,10 +7,10 @@ topology:
     leaf01:
       kind: cvx
       image: networkop/cx:4.4.0
-      mgmt-ipv4: 172.20.20.156
+      mgmt-ipv4: 172.20.20.220
     leaf02:
       kind: cvx
       image: networkop/cx:4.4.0
-      mgmt-ipv4: 172.20.20.219
+      mgmt-ipv4: 172.20.20.52
   links:
     - endpoints: ["leaf01:swp1", "leaf02:swp1"]

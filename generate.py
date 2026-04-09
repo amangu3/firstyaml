@@ -215,13 +215,50 @@ def main():
     print(shell_script)
     print(f"{'─'*55}")
 
-    print("\n✅  3 files generated!")
-    print(f"   1️⃣  {yaml_with}        ← final deploy (with binds)")
-    print(f"   2️⃣  {yaml_nobinds}  ← first deploy (no binds)")
-    print(f"   3️⃣  {shell_filename}    ← copy configs from containers")
+    # ── File 4: docker cp copy script ────────────────────────────────────────
+    copy_filename = base_name + "_copy_configs.sh"
+    copy_path     = os.path.join(script_dir, copy_filename)
+
+    cp = []
+    cp.append("#!/bin/bash")
+    cp.append("# Auto-generated: copy configs FROM running containers TO local config/ folder")
+    cp.append(f"# Run AFTER: containerlab deploy -t {yaml_nobinds}")
+    cp.append(f"# Run BEFORE: containerlab destroy -t {yaml_nobinds}")
+    cp.append("")
+    cp.append("set -e")
+    cp.append("")
+
+    for nname in cvx_nodes:
+        container = f"clab-{lab_name}-{nname}"
+        cp.append(f"# ── {nname}  (container: {container}) ──")
+        cp.append(f"docker cp {container}:/etc/network/interfaces config/{nname}/interfaces")
+        cp.append(f"docker cp {container}:/etc/frr/daemons        config/{nname}/daemons")
+        cp.append(f"docker cp {container}:/etc/frr/frr.conf       config/{nname}/frr.conf")
+        cp.append("")
+
+    cp.append(f'echo "✅ Configs copied from containers for: {", ".join(cvx_nodes)}"')
+    cp.append(f'echo "Now run: containerlab destroy -t {yaml_nobinds} && containerlab deploy -t {yaml_with}"')
+
+    copy_script = "\n".join(cp) + "\n"
+
+    with open(copy_path, "w") as f:
+        f.write(copy_script)
+    os.chmod(copy_path, 0o755)
+
+    print(f"📄 FILE 4 — Copy config script → {copy_filename}")
+    print(f"{'─'*55}")
+    print(copy_script)
+    print(f"{'─'*55}")
+
+    print("\n✅  4 files generated!")
+    print(f"   1️⃣  {yaml_with}           ← final deploy (with binds)")
+    print(f"   2️⃣  {yaml_nobinds}    ← first deploy (no binds)")
+    print(f"   3️⃣  {shell_filename}       ← create empty config folders/files")
+    print(f"   4️⃣  {copy_filename}  ← copy configs from containers")
     print(f"\n🚀  Workflow:")
-    print(f"   containerlab deploy -t {yaml_nobinds}")
     print(f"   bash {shell_filename}")
+    print(f"   containerlab deploy -t {yaml_nobinds}")
+    print(f"   bash {copy_filename}")
     print(f"   containerlab destroy -t {yaml_nobinds}")
     print(f"   containerlab deploy -t {yaml_with}")
 
