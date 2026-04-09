@@ -1,0 +1,40 @@
+name: evpn
+mgmt:
+  network: mgmt
+  ipv4-subnet: 172.20.20.0/24
+topology:
+  nodes:
+    leaf01:
+      kind: cvx
+      image: networkop/cx:4.4.0
+      mgmt-ipv4: 172.20.20.24
+      binds:
+      - config/leaf01/interfaces:/etc/network/interfaces
+      - config/leaf01/daemons:/etc/frr/daemons
+      - config/leaf01/frr.conf:/etc/frr/frr.conf
+    leaf02:
+      kind: cvx
+      image: networkop/cx:4.4.0
+      mgmt-ipv4: 172.20.20.183
+      binds:
+      - config/leaf02/interfaces:/etc/network/interfaces
+      - config/leaf02/daemons:/etc/frr/daemons
+      - config/leaf02/frr.conf:/etc/frr/frr.conf
+    spine01:
+      kind: cvx
+      image: networkop/cx:4.4.0
+      mgmt-ipv4: 172.20.20.205
+      binds:
+      - config/spine01/interfaces:/etc/network/interfaces
+      - config/spine01/daemons:/etc/frr/daemons
+      - config/spine01/frr.conf:/etc/frr/frr.conf
+    server01:
+      kind: linux
+      image: alpine:latest
+      mgmt-ipv4: 172.20.20.122
+  links:
+    - endpoints: ["leaf01:swp1", "leaf02:swp1"]
+    - endpoints: ["leaf01:swp2", "spine01:swp1"]
+    - endpoints: ["leaf01:swp3", "server01:eth1"]
+    - endpoints: ["leaf02:swp2", "spine01:swp2"]
+    - endpoints: ["leaf02:swp3", "server01:eth2"]
