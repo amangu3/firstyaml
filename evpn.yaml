@@ -7,7 +7,7 @@ topology:
     leaf01:
       kind: cvx
       image: networkop/cx:4.4.0
-      mgmt-ipv4: 172.20.20.196
+      mgmt-ipv4: 172.20.20.156
       binds:
       - config/leaf01/interfaces:/etc/network/interfaces
       - config/leaf01/daemons:/etc/frr/daemons
@@ -15,7 +15,7 @@ topology:
     leaf02:
       kind: cvx
       image: networkop/cx:4.4.0
-      mgmt-ipv4: 172.20.20.229
+      mgmt-ipv4: 172.20.20.219
       binds:
       - config/leaf02/interfaces:/etc/network/interfaces
       - config/leaf02/daemons:/etc/frr/daemons

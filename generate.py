@@ -131,78 +131,99 @@ def main():
             links.append({"ep1": ep1, "ep2": ep2})
             print(f"    ✅  Added: [\"{ep1}\", \"{ep2}\"]")
 
-    # ── Write YAML ────────────────────────────────────────────────────────────
-    lines = []
-    lines.append(f"name: {lab_name}")
-    lines.append("mgmt:")
-    lines.append(f"  network: {mgmt_network}")
-    lines.append(f"  ipv4-subnet: {mgmt_subnet}")
-    lines.append("topology:")
-    lines.append("  nodes:")
+    script_dir  = os.path.dirname(os.path.abspath(__file__))
+    base_name   = yaml_filename.replace(".yaml", "").replace(".yml", "")
+    cvx_nodes   = [n for n, v in nodes.items() if v["kind"] == "cvx"]
 
-    for nname, nval in nodes.items():
-        lines.append(f"    {nname}:")
-        lines.append(f"      kind: {nval['kind']}")
-        lines.append(f"      image: {nval['image']}")
-        lines.append(f"      mgmt-ipv4: {nval['mgmt-ipv4']}")
-        if "binds" in nval:
-            lines.append("      binds:")
-            for b in nval["binds"]:
-                lines.append(f"      - {b}")
+    # ── Helper: build YAML lines ───────────────────────────────────────────────
+    def build_yaml(include_binds: bool) -> str:
+        lines = []
+        lines.append(f"name: {lab_name}")
+        lines.append("mgmt:")
+        lines.append(f"  network: {mgmt_network}")
+        lines.append(f"  ipv4-subnet: {mgmt_subnet}")
+        lines.append("topology:")
+        lines.append("  nodes:")
 
-    lines.append("  links:")
-    for lnk in links:
-        lines.append(f'    - endpoints: ["{lnk["ep1"]}", "{lnk["ep2"]}"]')
+        for nname, nval in nodes.items():
+            lines.append(f"    {nname}:")
+            lines.append(f"      kind: {nval['kind']}")
+            lines.append(f"      image: {nval['image']}")
+            lines.append(f"      mgmt-ipv4: {nval['mgmt-ipv4']}")
+            if include_binds and "binds" in nval:
+                lines.append("      binds:")
+                for b in nval["binds"]:
+                    lines.append(f"      - {b}")
 
-    final_yaml = "\n".join(lines) + "\n"
+        lines.append("  links:")
+        for lnk in links:
+            lines.append(f'    - endpoints: ["{lnk["ep1"]}", "{lnk["ep2"]}"]')
 
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    save_path = os.path.join(script_dir, yaml_filename)
+        return "\n".join(lines) + "\n"
 
-    with open(save_path, "w") as f:
-        f.write(final_yaml)
+    # ── File 1: topology WITH binds ───────────────────────────────────────────
+    yaml_with    = base_name + ".yaml"
+    path_with    = os.path.join(script_dir, yaml_with)
+    content_with = build_yaml(include_binds=True)
+    with open(path_with, "w") as f:
+        f.write(content_with)
+    print(f"\n{'─'*55}")
+    print(f"📄 FILE 1 — WITH binds → {yaml_with}")
+    print(f"{'─'*55}")
+    print(content_with)
 
-    print(f"\n✅  Saved → {save_path}\n")
-    print("─" * 55)
-    print(final_yaml)
-    print("─" * 55)
+    # ── File 2: topology WITHOUT binds ────────────────────────────────────────
+    yaml_nobinds    = base_name + "_nobinds.yaml"
+    path_nobinds    = os.path.join(script_dir, yaml_nobinds)
+    content_nobinds = build_yaml(include_binds=False)
+    with open(path_nobinds, "w") as f:
+        f.write(content_nobinds)
+    print(f"📄 FILE 2 — WITHOUT binds → {yaml_nobinds}")
+    print(f"{'─'*55}")
+    print(content_nobinds)
 
-    # ── Shell Script for CVX config folders ───────────────────────────────────
-    cvx_nodes = [n for n, v in nodes.items() if v["kind"] == "cvx"]
+    # ── File 3: shell script ──────────────────────────────────────────────────
+    shell_filename = base_name + "_setup.sh"
+    shell_path     = os.path.join(script_dir, shell_filename)
 
-    shell_lines = []
-    shell_lines.append("#!/bin/bash")
-    shell_lines.append("# Auto-generated: creates config folders for CVX nodes")
-    shell_lines.append("# Run this before: containerlab deploy -t " + yaml_filename)
-    shell_lines.append("")
-    shell_lines.append("set -e")
-    shell_lines.append("")
+    sh = []
+    sh.append("#!/bin/bash")
+    sh.append("# Auto-generated: creates config folders and empty files for CVX nodes")
+    sh.append("# Run this before: containerlab deploy -t " + yaml_with)
+    sh.append("")
+    sh.append("set -e")
+    sh.append("")
 
     for nname in cvx_nodes:
-        shell_lines.append(f"# ── {nname} ──")
-        shell_lines.append(f"mkdir -p config/{nname}")
-        shell_lines.append(f"touch config/{nname}/interfaces")
-        shell_lines.append(f"touch config/{nname}/daemons")
-        shell_lines.append(f"touch config/{nname}/frr.conf")
-        shell_lines.append("")
+        sh.append(f"# ── {nname} ──")
+        sh.append(f"mkdir -p config/{nname}")
+        sh.append(f"touch config/{nname}/interfaces")
+        sh.append(f"touch config/{nname}/daemons")
+        sh.append(f"touch config/{nname}/frr.conf")
+        sh.append("")
 
-    shell_lines.append(f'echo "✅ Config folders created for: {", ".join(cvx_nodes)}"')
+    sh.append(f'echo "✅ Config folders created for: {", ".join(cvx_nodes)}"')
 
-    shell_script = "\n".join(shell_lines) + "\n"
-
-    shell_filename = yaml_filename.replace(".yaml", "").replace(".yml", "") + "_setup.sh"
-    shell_path = os.path.join(script_dir, shell_filename)
+    shell_script = "\n".join(sh) + "\n"
 
     with open(shell_path, "w") as f:
         f.write(shell_script)
+    os.chmod(shell_path, 0o755)
 
-    os.chmod(shell_path, 0o755)  # make it executable
-
-    print(f"\n✅  Shell script saved → {shell_path}")
-    print(f"    Run it with: bash {shell_filename}")
-    print("─" * 55)
+    print(f"📄 FILE 3 — Shell script → {shell_filename}")
+    print(f"{'─'*55}")
     print(shell_script)
-    print("─" * 55)
+    print(f"{'─'*55}")
+
+    print("\n✅  3 files generated!")
+    print(f"   1️⃣  {yaml_with}        ← final deploy (with binds)")
+    print(f"   2️⃣  {yaml_nobinds}  ← first deploy (no binds)")
+    print(f"   3️⃣  {shell_filename}    ← copy configs from containers")
+    print(f"\n🚀  Workflow:")
+    print(f"   containerlab deploy -t {yaml_nobinds}")
+    print(f"   bash {shell_filename}")
+    print(f"   containerlab destroy -t {yaml_nobinds}")
+    print(f"   containerlab deploy -t {yaml_with}")
 
 if __name__ == "__main__":
     main()

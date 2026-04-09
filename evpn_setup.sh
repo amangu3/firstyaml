@@ -1,5 +1,5 @@
 #!/bin/bash
-# Auto-generated: creates config folders for CVX nodes
+# Auto-generated: creates config folders and empty files for CVX nodes
 # Run this before: containerlab deploy -t evpn.yaml
 
 set -e
